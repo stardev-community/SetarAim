@@ -6,6 +6,7 @@ import android.os.BatteryManager
 import rikka.shizuku.Shizuku
 import java.io.File
 import java.util.Locale
+import kotlin.math.roundToInt
 
 enum class Q { MEASURED, SYSTEM_REPORTED, ESTIMATED, UNAVAILABLE }
 data class Rd(val text: String, val q: Q, val src: String, val level: Int = 0, val sub: String = "")
@@ -17,11 +18,15 @@ fun f2(v: Double) = String.format(Locale.US, "%.2f", v)
 class CpuReader {
     private var prev: Map<String, LongArray>? = null
     var cores = ""
-    private fun parse(): Map<String, LongArray>? = try {
-        File("/proc/stat").readLines().filter { it.startsWith("cpu") }.associate { l ->
-            val f = l.trim().split(Regex("\\s+")); f[0] to f.drop(1).take(8).map { it.toLong() }.toLongArray()
-        }.takeIf { it.containsKey("cpu") }
-    } catch (e: Exception) { null }
+    private fun parse(): Map<String, LongArray>? {
+        val txt: String = (try { File("/proc/stat").readText() } catch (e: Exception) {
+            if (Sh.ok()) Sh.run("cat /proc/stat") else null }) ?: return null
+        return try {
+            txt.lines().filter { it.startsWith("cpu") }.associate { l ->
+                val f = l.trim().split(Regex("\\s+")); f[0] to f.drop(1).take(8).map { it.toLong() }.toLongArray()
+            }.takeIf { it.containsKey("cpu") }
+        } catch (e: Exception) { null }
+    }
 
     private fun pct(a: LongArray, b: LongArray): Int {
         val dt = b.sum() - a.sum(); val di = (b[3] + b[4]) - (a[3] + a[4])
@@ -95,20 +100,48 @@ fun ram(c: Context): Rd {
 }
 
 object Sh {
+    private var localState = 0
+    private var localTs = 0L
     fun ok() = try { Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED } catch (e: Throwable) { false }
-    fun run(cmd: String): String? = try {
+    private fun shizuku(cmd: String): String? = try {
         val m = Shizuku::class.java.getDeclaredMethod("newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java)
         m.isAccessible = true
         val p = m.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
         val o = p.inputStream.bufferedReader().readText(); p.waitFor(); o
     } catch (e: Throwable) { null }
+    private fun local(cmd: String): String? = try {
+        val p = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
+        val o = p.inputStream.bufferedReader().readText(); p.waitFor(); o
+    } catch (e: Throwable) { null }
+    // izin DUMP (sekali via adb) memungkinkan dumpsys tanpa Shizuku
+    fun localOk(): Boolean {
+        if (localState == 1) return true
+        val now = System.currentTimeMillis()
+        if (localState == -1 && now - localTs < 30000) return false
+        val o = local("dumpsys SurfaceFlinger --list 2>&1") ?: ""
+        localTs = now
+        localState = if (o.isNotBlank() && !o.contains("Permission Denial", true) && !o.contains("denied", true)) 1 else -1
+        return localState == 1
+    }
+    fun available() = ok() || localOk()
+    fun run(cmd: String): String? = if (ok()) shizuku(cmd) else local(cmd)
 }
 
 class FpsReader {
     private var layer: String? = null
     private var ts = 0L
+    private fun displayFps(): Rd {
+        for (p in listOf("/sys/class/graphics/fb0/measured_fps", "/sys/class/drm/sde-crtc-0/measured_fps")) {
+            try {
+                val v = Regex("(\\d+(?:\\.\\d+)?)").find(File(p).readText())?.groupValues?.get(1)?.toDouble()
+                if (v != null) return Rd("${v.roundToInt()}", Q.MEASURED, "$p (laju frame layar, bukan FPS per-aplikasi)", if (v < 30) 1 else 0)
+            } catch (e: Exception) {}
+        }
+        return na("FPS butuh Shizuku ATAU izin DUMP via adb (lihat README); measured_fps tidak ada")
+    }
+
     fun read(): Rd {
-        if (!Sh.ok()) return na("Butuh Shizuku aktif + izin (FPS dari SurfaceFlinger)")
+        if (!Sh.available()) return displayFps()
         val now = System.currentTimeMillis()
         if (layer == null || now - ts > 3000) {
             ts = now

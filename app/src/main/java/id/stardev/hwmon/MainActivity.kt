@@ -1,6 +1,7 @@
 package id.stardev.hwmon
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
@@ -11,6 +12,7 @@ import android.widget.*
 class MainActivity : Activity() {
     private lateinit var p: Prefs
     private lateinit var dash: TextView
+    private lateinit var prev: TextView
     private val h = Handler(Looper.getMainLooper())
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
     private fun tv(t: String, sz: Float = 14f, bold: Boolean = false) = TextView(this).apply {
@@ -48,10 +50,16 @@ class MainActivity : Activity() {
         c.addView(sw("Mode geser (bar bisa disentuh: geser / ketuk = collapse)", "unlocked", false) { refresh() })
         c.addView(sw("Collapse", "collapsed", false) { refresh() })
         c.addView(sw("Mulai saat boot", "boot", false) {})
-        seek(c, "Transparansi latar", "alpha", 10, 100, 80, "%")
+        seek(c, "Transparansi latar", "alpha", 0, 100, 80, "%")
         seek(c, "Ukuran teks", "textSp", 8, 24, 12, "sp")
         seek(c, "Offset atas (x tinggi teks)", "topLines", 0, 30, 12, "")
-        seek(c, "Interval update", "interval", 500, 5000, 1000, " ms")
+        seek(c, "Interval update (makin besar makin hemat CPU)", "interval", 10, 2000, 1000, " ms")
+        c.addView(sw("Satu warna teks (mati = hijau/kuning/merah sesuai status)", "mono", false) { refresh() })
+        seek(c, "Warna teks - Merah", "tr", 0, 255, 255, "")
+        seek(c, "Warna teks - Hijau", "tg", 0, 255, 255, "")
+        seek(c, "Warna teks - Biru", "tb", 0, 255, 255, "")
+        prev = TextView(this).apply { text = "Contoh warna teks 12.34V"; textSize = 16f; setBackgroundColor(0xFF202028.toInt()); setPadding(dp(12), dp(8), dp(12), dp(8)) }
+        c.addView(prev)
         c.addView(tv("Indikator tampil", 14f, true))
         listOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS", "GPU").forEachIndexed { i, n -> c.addView(sw(n, "show$i", true) { refresh() }) }
         c.addView(btn("Reset posisi") { p.set("offX", 0); p.set("offY", 0); refresh() })
@@ -77,6 +85,7 @@ class MainActivity : Activity() {
                 val rails = Lcd.scan()
                 sb.append(if (rails.isEmpty()) "  (tidak ada)" else rails.joinToString("\n") { "  ${it.first} = ${f2(it.second)} V" })
             }
+            prev.setTextColor(Color.rgb(p.i("tr", 255), p.i("tg", 255), p.i("tb", 255)))
             dash.text = sb.toString()
             h.postDelayed(this, 1000)
         }

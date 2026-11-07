@@ -16,3 +16,8 @@ Buka APK dari file manager -> izinkan "pasang dari sumber ini" -> Install.
 
 ## Sumber data
 CPU: /proc/stat (SYSTEM_REPORTED) -> fallback rasio cpufreq (ESTIMATED, tampil "~", kuning). Voltage: BatteryManager. LCD: /sys/class/regulator (nama rail cocok vci/vddi/avdd/avee/lcd/dsi...), N/A bila tidak terbaca. RAM: ActivityManager. FPS: dumpsys SurfaceFlinger --latency via Shizuku (MEASURED), N/A bila tak ada.
+
+## FPS tanpa Shizuku
+Opsi A (sekali, permanen): dari PC/HP lain via ADB: `adb shell pm grant id.stardev.hwmon android.permission.DUMP`. Setelah itu FPS jalan tanpa Shizuku, tetap ada setelah reboot.
+Opsi B: Shizuku. Opsi C (fallback): file measured_fps (hanya di sebagian kernel, itu laju frame layar, bukan FPS per-aplikasi).
+CPU asli (/proc/stat) juga dibaca lewat Shizuku kalau Android memblokir akses langsung.

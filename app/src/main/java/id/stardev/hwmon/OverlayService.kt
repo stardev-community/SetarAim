@@ -78,7 +78,7 @@ class OverlayService : Service() {
             background = GradientDrawable().apply {
                 cornerRadius = dp(10).toFloat()
                 setColor(Color.argb(prefs.i("alpha", 80) * 255 / 100, 15, 15, 20))
-                setStroke(1, Color.argb(60, 255, 255, 255))
+                setStroke(1, Color.argb(60 * prefs.i("alpha", 80) / 100, 255, 255, 255))
             }
         }
         if (prefs.b("collapsed", false)) {
@@ -86,7 +86,7 @@ class OverlayService : Service() {
         } else for (i in 0..5) {
             if (!prefs.b("show$i", true)) continue
             val cell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(8), 0, dp(8), 0) }
-            lbls[i] = TextView(this).apply { text = names[i]; setTextColor(0xFFE0E0E0.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * 0.65f); gravity = Gravity.CENTER; maxLines = 1 }
+            lbls[i] = TextView(this).apply { text = names[i]; setTextColor(if (prefs.b("mono", false)) mono() else 0xFFE0E0E0.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * 0.65f); gravity = Gravity.CENTER; maxLines = 1 }
             vals[i] = TextView(this).apply { text = "--"; setTextColor(0xFF9E9E9E.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp); setTypeface(typeface, android.graphics.Typeface.BOLD); gravity = Gravity.CENTER; maxLines = 1 }
             cell.addView(lbls[i]); cell.addView(vals[i]); r.addView(cell)
         }
@@ -119,7 +119,9 @@ class OverlayService : Service() {
         MonitorEngine.latest?.let { paint(it) }
     }
 
+    private fun mono() = Color.rgb(prefs.i("tr", 255), prefs.i("tg", 255), prefs.i("tb", 255))
     private fun col(r: Rd) = if (r.q == Q.UNAVAILABLE) 0xFF9E9E9E.toInt()
+        else if (prefs.b("mono", false)) mono()
         else when (r.level) { 2 -> 0xFFF44336.toInt(); 1 -> 0xFFFFC107.toInt(); else -> 0xFF4CAF50.toInt() }
 
     private fun paint(s: Snap) {
