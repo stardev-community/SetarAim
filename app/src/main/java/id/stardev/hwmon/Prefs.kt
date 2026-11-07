@@ -8,6 +8,6 @@ class Prefs(c: Context) {
     fun set(k: String, v: Any) {
         val e = p.edit()
         when (v) { is Boolean -> e.putBoolean(k, v); is Int -> e.putInt(k, v) }
-        e.apply()
+        e.commit()
     }
 }

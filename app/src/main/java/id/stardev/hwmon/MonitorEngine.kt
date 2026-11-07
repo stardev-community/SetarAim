@@ -13,9 +13,11 @@ class MonitorEngine(private val c: Context, private val onSnap: (Snap) -> Unit) 
     private val tick = object : Runnable {
         override fun run() {
             if (!active) return
-            val s = Snap(cpu.read(), battery(c), Lcd.read(), ram(c), fps.read(), cpu.cores)
-            latest = s
-            ui.post { onSnap(s) }
+            try {
+                val s = Snap(cpu.read(), battery(c), Lcd.read(), ram(c), fps.read(), cpu.cores)
+                latest = s
+                ui.post { try { onSnap(s) } catch (t: Throwable) { Crash.log(c, "paint", t) } }
+            } catch (t: Throwable) { Crash.log(c, "engine", t) }
             h.postDelayed(this, prefs.i("interval", 1000).toLong())
         }
     }

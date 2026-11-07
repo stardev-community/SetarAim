@@ -38,8 +38,12 @@ class OverlayService : Service() {
             "LOCK" -> prefs.set("unlocked", !prefs.b("unlocked", false))
         }
         startForeground(1, notif())
-        rebuild()
-        if (engine == null) engine = MonitorEngine(this) { paint(it) }.also { it.start() }
+        try {
+            rebuild()
+            if (engine == null) engine = MonitorEngine(this) { paint(it) }.also { it.start() }
+        } catch (t: Throwable) {
+            Crash.log(this, "service", t); prefs.set("enabled", false); stopSelf(); return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
@@ -57,9 +61,9 @@ class OverlayService : Service() {
         return Notification.Builder(this, "hw").setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("StarDev HW Monitor")
             .setContentText(if (unl) "Mode geser AKTIF (sentuh bar: geser / ketuk = collapse)" else "Mode kunci (sentuhan tembus)")
-            .addAction(0, if (hid) "Tampilkan" else "Sembunyikan", pi("HIDE", 1))
-            .addAction(0, if (unl) "Kunci" else "Geser", pi("LOCK", 2))
-            .addAction(0, "Berhenti", pi("STOP", 3)).setOngoing(true).build()
+            .addAction(android.R.drawable.ic_menu_manage, if (hid) "Tampilkan" else "Sembunyikan", pi("HIDE", 1))
+            .addAction(android.R.drawable.ic_menu_manage, if (unl) "Kunci" else "Geser", pi("LOCK", 2))
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Berhenti", pi("STOP", 3)).setOngoing(true).build()
     }
 
     private fun rebuild() {

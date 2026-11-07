@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <application android:label="StarDev HW Monitor" android:icon="@android:drawable/ic_dialog_info"
+    <application android:name=".App" android:label="StarDev HW Monitor" android:icon="@android:drawable/ic_dialog_info"
         android:theme="@android:style/Theme.Material.Light">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

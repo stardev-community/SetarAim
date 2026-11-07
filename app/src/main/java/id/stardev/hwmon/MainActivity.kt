@@ -55,6 +55,7 @@ class MainActivity : Activity() {
         c.addView(tv("Indikator tampil", 14f, true))
         listOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS").forEachIndexed { i, n -> c.addView(sw(n, "show$i", true) { refresh() }) }
         c.addView(btn("Reset posisi") { p.set("offX", 0); p.set("offY", 0); refresh() })
+        c.addView(btn("Hapus log crash") { Crash.file(this).delete() })
         c.addView(tv("Dashboard diagnostik", 16f, true))
         dash = TextView(this).apply { typeface = Typeface.MONOSPACE; textSize = 11f }
         c.addView(dash)
@@ -66,7 +67,8 @@ class MainActivity : Activity() {
     private val tick = object : Runnable {
         override fun run() {
             val s = MonitorEngine.latest
-            val sb = StringBuilder("Overlay: ${if (Perm.hasOverlay(this@MainActivity)) "izin OK" else "izin BELUM"} | ${Perm.shizuku()}\n\n")
+            val cr = Crash.file(this@MainActivity).let { if (it.exists()) "!! LOG CRASH:\n" + it.readText().take(3000) + "\n\n" else "" }
+            val sb = StringBuilder(cr + "Overlay: ${if (Perm.hasOverlay(this@MainActivity)) "izin OK" else "izin BELUM"} | ${Perm.shizuku()}\n\n")
             if (s == null) sb.append("Layanan belum berjalan / belum ada sampel.")
             else {
                 listOf("CPU" to s.cpu, "BATERAI" to s.bat, "LCD" to s.lcd, "RAM" to s.ram, "FPS" to s.fps).forEach { (n, r) ->
