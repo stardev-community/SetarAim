@@ -119,7 +119,7 @@ class OverlayService : Service() {
         MonitorEngine.latest?.let { paint(it) }
     }
 
-    private fun col(r: R) = if (r.q == Q.UNAVAILABLE) 0xFF9E9E9E.toInt()
+    private fun col(r: Rd) = if (r.q == Q.UNAVAILABLE) 0xFF9E9E9E.toInt()
         else when (r.level) { 2 -> 0xFFF44336.toInt(); 1 -> 0xFFFFC107.toInt(); else -> 0xFF4CAF50.toInt() }
 
     private fun paint(s: Snap) {
