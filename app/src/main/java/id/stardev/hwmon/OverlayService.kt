@@ -16,9 +16,9 @@ class OverlayService : Service() {
     private lateinit var prefs: Prefs
     private var engine: MonitorEngine? = null
     private var root: LinearLayout? = null
-    private val vals = arrayOfNulls<TextView>(5)
-    private val lbls = arrayOfNulls<TextView>(5)
-    private val names = arrayOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS")
+    private val vals = arrayOfNulls<TextView>(6)
+    private val lbls = arrayOfNulls<TextView>(6)
+    private val names = arrayOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS", "GPU")
 
     override fun onBind(i: Intent?): IBinder? = null
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
@@ -83,7 +83,7 @@ class OverlayService : Service() {
         }
         if (prefs.b("collapsed", false)) {
             r.addView(TextView(this).apply { text = "▸ HW"; setTextColor(Color.WHITE); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp) })
-        } else for (i in 0..4) {
+        } else for (i in 0..5) {
             if (!prefs.b("show$i", true)) continue
             val cell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(8), 0, dp(8), 0) }
             lbls[i] = TextView(this).apply { text = names[i]; setTextColor(0xFFE0E0E0.toInt()); setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * 0.65f); gravity = Gravity.CENTER; maxLines = 1 }
@@ -123,8 +123,8 @@ class OverlayService : Service() {
         else when (r.level) { 2 -> 0xFFF44336.toInt(); 1 -> 0xFFFFC107.toInt(); else -> 0xFF4CAF50.toInt() }
 
     private fun paint(s: Snap) {
-        val rs = arrayOf(s.cpu, s.bat, s.lcd, s.ram, s.fps)
-        for (i in 0..4) {
+        val rs = arrayOf(s.cpu, s.bat, s.lcd, s.ram, s.fps, s.gpu)
+        for (i in 0..5) {
             val v = vals[i] ?: continue; val r = rs[i]
             v.text = r.text; v.setTextColor(col(r))
             lbls[i]?.text = if (r.sub.isEmpty()) names[i] else names[i] + " " + r.sub

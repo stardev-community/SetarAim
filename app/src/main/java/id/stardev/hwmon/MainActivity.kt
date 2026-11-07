@@ -53,7 +53,7 @@ class MainActivity : Activity() {
         seek(c, "Offset atas (x tinggi teks)", "topLines", 0, 30, 12, "")
         seek(c, "Interval update", "interval", 500, 5000, 1000, " ms")
         c.addView(tv("Indikator tampil", 14f, true))
-        listOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS").forEachIndexed { i, n -> c.addView(sw(n, "show$i", true) { refresh() }) }
+        listOf("CPU", "VOLTAGE", "LCD VOLTAGE", "RAM", "FPS", "GPU").forEachIndexed { i, n -> c.addView(sw(n, "show$i", true) { refresh() }) }
         c.addView(btn("Reset posisi") { p.set("offX", 0); p.set("offY", 0); refresh() })
         c.addView(btn("Hapus log crash") { Crash.file(this).delete() })
         c.addView(tv("Dashboard diagnostik", 16f, true))
@@ -71,7 +71,7 @@ class MainActivity : Activity() {
             val sb = StringBuilder(cr + "Overlay: ${if (Perm.hasOverlay(this@MainActivity)) "izin OK" else "izin BELUM"} | ${Perm.shizuku()}\n\n")
             if (s == null) sb.append("Layanan belum berjalan / belum ada sampel.")
             else {
-                listOf("CPU" to s.cpu, "BATERAI" to s.bat, "LCD" to s.lcd, "RAM" to s.ram, "FPS" to s.fps).forEach { (n, r) ->
+                listOf("CPU" to s.cpu, "BATERAI" to s.bat, "LCD" to s.lcd, "RAM" to s.ram, "FPS" to s.fps, "GPU" to s.gpu).forEach { (n, r) ->
                     sb.append("$n: ${r.text} ${r.sub}\n  [${r.q}] ${r.src}\n") }
                 sb.append("\nPer-core: ${s.cores.ifEmpty { "-" }}\n\nRail LCD terdeteksi:\n")
                 val rails = Lcd.scan()

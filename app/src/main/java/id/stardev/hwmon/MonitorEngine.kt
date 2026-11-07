@@ -14,7 +14,7 @@ class MonitorEngine(private val c: Context, private val onSnap: (Snap) -> Unit) 
         override fun run() {
             if (!active) return
             try {
-                val s = Snap(cpu.read(), battery(c), Lcd.read(), ram(c), fps.read(), cpu.cores)
+                val s = Snap(cpu.read(), battery(c), Lcd.read(), ram(c), fps.read(), Gpu.read(), cpu.cores)
                 latest = s
                 ui.post { try { onSnap(s) } catch (t: Throwable) { Crash.log(c, "paint", t) } }
             } catch (t: Throwable) { Crash.log(c, "engine", t) }

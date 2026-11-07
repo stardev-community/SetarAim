@@ -9,7 +9,7 @@ import java.util.Locale
 
 enum class Q { MEASURED, SYSTEM_REPORTED, ESTIMATED, UNAVAILABLE }
 data class Rd(val text: String, val q: Q, val src: String, val level: Int = 0, val sub: String = "")
-data class Snap(val cpu: Rd, val bat: Rd, val lcd: Rd, val ram: Rd, val fps: Rd, val cores: String)
+data class Snap(val cpu: Rd, val bat: Rd, val lcd: Rd, val ram: Rd, val fps: Rd, val gpu: Rd, val cores: String)
 
 fun na(src: String) = Rd("N/A", Q.UNAVAILABLE, src)
 fun f2(v: Double) = String.format(Locale.US, "%.2f", v)
@@ -126,5 +126,31 @@ class FpsReader {
         val newest = t.max()
         val fps = if (System.nanoTime() - newest > 1_500_000_000L) 0 else t.count { it > newest - 1_000_000_000L }
         return Rd("$fps", Q.MEASURED, "SurfaceFlinger --latency (frame yang benar-benar dipresentasikan)", if (fps < 30) 1 else 0)
+    }
+}
+
+object Gpu {
+    private val fixed = listOf(
+        "/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage", "/sys/kernel/ged/hal/gpu_utilization",
+        "/sys/kernel/debug/ged/hal/gpu_utilization", "/d/ged/hal/gpu_utilization", "/proc/mali/utilization")
+    @Volatile private var path: String? = null
+    private var miss = 0
+    private fun candidates(): List<String> {
+        val l = ArrayList(fixed)
+        try {
+            File("/sys/class/devfreq").listFiles()?.filter { Regex("(?i)gpu|mali|kgsl|pvr").containsMatchIn(it.name) }
+                ?.forEach { l.add(it.path + "/load") }
+        } catch (e: Exception) {}
+        return l
+    }
+    private fun cat(p: String): String? = try { File(p).readText() } catch (e: Exception) {
+        if (Sh.ok()) Sh.run("cat $p 2>/dev/null")?.takeIf { it.isNotBlank() } else null }
+    private fun parse(t: String): Int? = Regex("(\\d{1,3})").find(t)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it in 0..100 }
+    private fun ok(p: String, v: Int) = Rd("$v%", Q.SYSTEM_REPORTED, "$p (angka pertama = utilisasi GPU)", if (v >= 90) 2 else if (v >= 70) 1 else 0)
+    fun read(): Rd {
+        path?.let { p -> val v = cat(p)?.let { parse(it) }; if (v != null) return ok(p, v); path = null }
+        if (miss++ % 10 != 0) return na("Beban GPU belum terbaca (cek ulang berkala)")
+        for (p in candidates()) { val v = cat(p)?.let { parse(it) }; if (v != null) { path = p; return ok(p, v) } }
+        return na("Tidak ada file beban GPU yang terbaca (butuh Shizuku/root; tergantung chipset)")
     }
 }
